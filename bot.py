@@ -2,6 +2,8 @@ import os
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
+URL = "https://tr-ftl.vercel.app/"
+
 # Telegram API credentials
 API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
@@ -67,7 +69,7 @@ def respond():
 # vercel verify
 @app.route('/setwebhook', methods=['GET', 'POST'])
 def set_webhook():
-    s = bot.setWebhook('{URL}/{HOOK}'.format(URL=URL, HOOK=TOKEN))
+    s = bot.setWebhook('{URL}/{HOOK}'.format(URL=URL, HOOK=BOT_TOKEN))
     if s:
         return "webhook setup ok"
     else:
