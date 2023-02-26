@@ -11,25 +11,37 @@ from TechnoRanch.bot import StreamBot
 from TechnoRanch.vars import Var
 from pyrogram import filters, Client
 from pyrogram.types import Message
+from fastapi import FastAPI
+
+app = FastAPI()
 db = Database(Var.DATABASE_URL, Var.name)
 broadcast_ids = {}
 
-@StreamBot.on_message(filters.command("users") & filters.private)
-async def sts(c: Client, m: Message):
-    user_id=m.from_user.id 
-    if user_id in Var.OWNER_ID:
-        total_users = await db.total_users_count()
-        await m.reply_text(text=f"Total Users in DB: {total_users}", quote=True)
-        
-        
-@StreamBot.on_message(filters.command("broadcast") & filters.private & filters.user(list(Var.OWNER_ID)))
-async def broadcast_(c, m):
-    user_id=m.from_user.id
-    out = await m.reply_text(
-            text=f"Broadcast initiated! You will be notified with log file when all the users are notified."
-    )
+@app.on_event("startup")
+async def startup():
+    await db.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await db.disconnect()
+
+@app.get("/")
+async def read_root():
+    return {"Hello": "World"}
+
+@app.on_event("shutdown")
+async def shutdown():
+    await db.disconnect()
+
+@app.get("/users")
+async def get_users():
+    total_users = await db.total_users_count()
+    return {"total_users": total_users}
+
+@app.post("/broadcast")
+async def broadcast(message: Message):
     all_users = await db.get_all_users()
-    broadcast_msg = m.reply_to_message
+    broadcast_msg = message.reply_to_message
     while True:
         broadcast_id = ''.join([random.choice(string.ascii_letters) for i in range(3)])
         if not broadcast_ids.get(broadcast_id):
@@ -74,16 +86,15 @@ async def broadcast_(c, m):
         broadcast_ids.pop(broadcast_id)
     completed_in = datetime.timedelta(seconds=int(time.time() - start_time))
     await asyncio.sleep(3)
-    await out.delete()
     if failed == 0:
-        await m.reply_text(
-            text=f"broadcast completed in `{completed_in}`\n\nTotal users {total_users}.\nTotal done {done}, {success} success and {failed} failed.",
-            quote=True
-        )
+        return {
+            "message": f"broadcast completed in `{completed_in}`\n\nTotal users {total_users}.\nTotal done {done}, {success} success and {failed} failed."
+        }
     else:
-        await m.reply_document(
-            document='broadcast.txt',
-            caption=f"broadcast completed in `{completed_in}`\n\nTotal users {total_users}.\nTotal done {done}, {success} success and {failed} failed.",
-            quote=True
-        )
-    os.remove('broadcast.txt')
+        with open('broadcast.txt', 'rb') as file:
+            contents = file.read()
+        os.remove('broadcast.txt')
+        return {
+            "message": f"broadcast completed in `{completed_in}`\n\nTotal users {total_users}.\nTotal done {done}, {success} success and {failed} failed.",
+            "file": contents
+        }
