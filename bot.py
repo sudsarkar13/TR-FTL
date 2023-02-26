@@ -1,76 +1,41 @@
 import os
-from pyrogram import Client, filters
-from pyrogram.types import Message
+import requests
+import tempfile
+from telegram import Update, Document
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
 
-URL = "https://tr-ftl.vercel.app/"
+# Define your Vercel deployment URL
+VERCEL_DEPLOYMENT_URL = 'https://tr-ftl.vercel.app/'
 
-# Telegram API credentials
-API_ID = os.environ.get("API_ID")
-API_HASH = os.environ.get("API_HASH")
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-BIN_CHANNEL = os.environ.get("BIN_CHANNEL")
-
-
-# Define database handler
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-# Initialize the client
-client = Client("trfiletolinkbot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, bin_channel=BIN_CHANNEL, database_url=DATABASE_URL)
-
-# Define the start command handler
-@client.on_message(filters.command("start"))
-async def start_handler(_, message):
-    await message.reply_text("Hi! I am a Telegram video downloader bot. Just send me a video file and I will provide you with a high-speed download link.")
-
-
-# Define the video handler
-@client.on_message(filters.video)
-async def video_handler(_, message):
-    file_id = message.video.file_id
-    chat_id = message.chat.id
-    message_id = message.message_id
+def convert_file(update: Update, context: CallbackContext) -> None:
+    # Get the file from the message
+    file = context.bot.get_file(update.message.document.file_id)
     
-    # Get the download link for the video file
-    download_url = await client.send_video(
-        chat_id=chat_id,
-        video=file_id,
-        supports_streaming=True,
-        progress=progress_callback,
-    )
+    # Download the file to a temporary directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = os.path.join(temp_dir, file.file_path)
+        file.download(file_path)
+        
+        # Convert the file using your Vercel deployment
+        response = requests.post(VERCEL_DEPLOYMENT_URL, files={'file': open(file_path, 'rb')})
+        response.raise_for_status()
+        
+        # Send the user a message containing the download and streaming link
+        link = response.json().get('link')
+        update.message.reply_text(f"Here is your high-speed download and streaming link: {link}")
 
-    await client.send_message(chat_id, f"Download link: {download_url}")
+def main() -> None:
+    # Set up the Telegram bot using your bot token
+    updater = Updater("5431499256:AAH2Zo0zw_bWgLQr9z_cDa4G4U_masSDlco")
+    dispatcher = updater.dispatcher
+    
+    # Set up a handler for file messages
+    file_handler = MessageHandler(Filters.document.category('video'), convert_file)
+    dispatcher.add_handler(file_handler)
+    
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
 
-
-# Define a progress callback function to track upload progress
-async def progress_callback(current, total):
-    print(f"Uploaded {current} out of {total}")
-
-
-# Define an error handler
-@client.on_message(filters.command(["cancel", "stop"]))
-async def error_handler(_, message: Message):
-    await message.reply_text("Operation cancelled!")
-
-
-# Start the client
-client.run()
-
-# @app.route('/')
-# def index():
-#     return 'Hello World!'
-
-
-# @app.route('/{}'.format(TOKEN), methods=['GET', 'POST'])
-# def respond():
-#     update = Update.de_json(request.get_json(force=True), bot)
-#     setup().process_update(update)
-#     return 'ok'
-
-# # vercel verify
-# @app.route('/setwebhook', methods=['GET', 'POST'])
-# def set_webhook():
-#     s = bot.setWebhook('{URL}/{HOOK}'.format(URL=URL, HOOK=BOT_TOKEN))
-#     if s:
-#         return "webhook setup ok"
-#     else:
-#         return "webhook setup failed"
+if __name__ == '__main__':
+    main()
