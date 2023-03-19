@@ -99,10 +99,46 @@ dispatcher.add_handler(join_handler)
 # Error handling
 dispatcher.add_error_handler(error)
 
-# Start the bot
-    app = Flask(__name__)
+# # Start the bot
+#     app = Flask(__name__)
 
-@app.route('/' methods=['POST'])
+# @app.route('/' methods=['POST'])
+# def webhook():
+#     json_string = request.get_data()
+#     update = telegram.Update.de_json(json.loads(json_string), bot)
+#     dispatcher.process_update(update)
+#     return 'ok'
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
+
+# bot = telegram.Bot(token=os.environ['BOT_TOKEN'])
+# updater = telegram.ext.Updater(token=os.environ['BOT_TOKEN'])
+# dispatcher = updater.dispatcher
+
+# dispatcher.add_handler(start_handler)
+# dispatcher.add_handler(help_handler)
+# dispatcher.add_handler(video_handler)
+# dispatcher.add_handler(join_handler)
+
+# updater.start_webhook(listen="0.0.0.0",
+#                       port=int(os.environ.get('PORT', 5000)),
+#                       url_path=os.environ['BOT_TOKEN'])
+# updater.bot.setWebhook(url=f"{NETLIFY_URL}/{os.environ['BOT_TOKEN']}")
+
+#     # Send a message to the updates channel to inform users that the bot is up and running
+#     updates_channel_id = os.environ.get('UPDATES_CHANNEL_ID')
+#     updates_channel_url = f"https://t.me/c/{updates_channel_id}"
+#     context.bot.send_message(chat_id=updates_channel_id,
+#                              text="Bot is up and running!", parse_mode=ParseMode.HTML)
+
+#     # Block until the bot is stopped
+#     updater.idle()
+
+# Start the bot
+app = Flask(__name__)
+
+@app.route('/', methods=['POST'])
 def webhook():
     json_string = request.get_data()
     update = telegram.Update.de_json(json.loads(json_string), bot)
@@ -110,27 +146,24 @@ def webhook():
     return 'ok'
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    bot = telegram.Bot(token=os.environ['BOT_TOKEN'])
+    updater = telegram.ext.Updater(token=os.environ['BOT_TOKEN'])
+    dispatcher = updater.dispatcher
 
-bot = telegram.Bot(token=os.environ['BOT_TOKEN'])
-updater = telegram.ext.Updater(token=os.environ['BOT_TOKEN'])
-dispatcher = updater.dispatcher
+    dispatcher.add_handler(start_handler)
+    dispatcher.add_handler(help_handler)
+    dispatcher.add_handler(video_handler)
+    dispatcher.add_handler(join_handler)
 
-dispatcher.add_handler(start_handler)
-dispatcher.add_handler(help_handler)
-dispatcher.add_handler(video_handler)
-dispatcher.add_handler(join_handler)
-
-updater.start_webhook(listen="0.0.0.0",
-                      port=int(os.environ.get('PORT', 5000)),
-                      url_path=os.environ['BOT_TOKEN'])
-updater.bot.setWebhook(url=f"{NETLIFY_URL}/{os.environ['BOT_TOKEN']}")
+    updater.start_webhook(listen="0.0.0.0",
+                          port=int(os.environ.get('PORT', 5000)),
+                          url_path=os.environ['BOT_TOKEN'])
+    updater.bot.setWebhook(url=f"{NETLIFY_URL}/{os.environ['BOT_TOKEN']}")
 
     # Send a message to the updates channel to inform users that the bot is up and running
     updates_channel_id = os.environ.get('UPDATES_CHANNEL_ID')
     updates_channel_url = f"https://t.me/c/{updates_channel_id}"
-    context.bot.send_message(chat_id=updates_channel_id,
-                             text="Bot is up and running!", parse_mode=ParseMode.HTML)
+    bot.send_message(chat_id=updates_channel_id,
+                     text=f"Bot is up and running!\nJoin {updates_channel_url} for updates and to use this bot!")
 
-    # Block until the bot is stopped
-    updater.idle()
+    app.run(debug=True)
