@@ -1,0 +1,23 @@
+WAPP for a Telegram bot which can convert files into high speed downloadable and streamable links supports netlify deployment and webhook, html page to check the bot is working or not:
+
+Features:
+1. Join the Updates channel to start the bot
+2. Garbage channel to store the File and permanent Links
+3. function size limit of bot should be 50 mb
+
+Additional Features:
+1. Streamable link should have an html webpage to play the media in any type of player available
+2. Text decoration
+
+Output format of the bot:
+
+File Name: {File name of the media}
+Here are the links for your video:
+
+📦File Size: {file size of the media}
+💌Download link: {download link}
+💻Watch online: {streamable link}
+
+♻️ THIS LINK IS PERMANENT AND WILL NOT EXPIRE ♻️
+
+Two buttons: ⚡DOWLOAD⚡{contains download link} and ⚡WATCH⚡{contains streaming link}
